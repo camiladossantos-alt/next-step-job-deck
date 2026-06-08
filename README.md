@@ -61,6 +61,15 @@ Neste cenário, a própria IDE lerá e atualizará os arquivos de contexto de fo
     1. Cole a pasta `docs/` na raiz do seu projeto.
     2. No chat do **Copilot Edits** (modo agente), adicione os arquivos de contexto da pasta `docs/` e o [`ONION-MASTER-PROMPT.md`](./ONION-MASTER-PROMPT.md) na lista de arquivos em contexto.
     3. Instrua a IA a seguir rigorosamente as personas e etapas detalhadas no prompt.
+*   **Claude Code / Cowork**:
+    1. Cole a pasta `docs/` na raiz do seu projeto.
+    2. Adicione o arquivo [`ONION-MASTER-PROMPT.md`](./ONION-MASTER-PROMPT.md) na pasta `.claude/rules/` ou como regra do seu ambiente de agente.
+    3. O agente CLI do Claude Code lerá os arquivos de ciclo e o contexto técnico/negócio para planejar e executar a escrita do código.
+*   **Zed (Zed AI / Assistants)**:
+    1. Cole a pasta `docs/` na raiz do seu projeto.
+    2. Adicione o conteúdo do [`ONION-MASTER-PROMPT.md`](./ONION-MASTER-PROMPT.md) como prompt de sistema ou insira nas instruções do assistente do Zed.
+    3. Use o editor Zed AI com suporte a escrita e alteração de múltiplos arquivos de contexto em disco.
+
 
 ---
 
