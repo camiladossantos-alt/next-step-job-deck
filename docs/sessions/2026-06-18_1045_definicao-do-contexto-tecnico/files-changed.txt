@@ -1,0 +1,1 @@
+docs/technical-context-lite.md

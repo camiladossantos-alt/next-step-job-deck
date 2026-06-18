@@ -1,0 +1,12 @@
+{
+  "name": "next-step-job-deck",
+  "version": "1.0.0",
+  "description": "Next Step - Job Deck — Job Search Tracker & AI Cockpit",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx -y serve .",
+    "start": "npx -y serve ."
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

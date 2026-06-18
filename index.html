@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Next Step - Job Deck — Job Tracker & AI Cockpit</title>
+    <meta name="description" content="Gerencie suas candidaturas a vagas de emprego de forma inteligente e integrada com IA.">
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Supabase Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Google GIS for Calendar -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo-container">
+                <span class="logo-icon">🧅</span>
+                <h1 class="logo-text">Next<span>Step</span> <small style="font-size: 0.7rem; font-weight: 400; display: block; color: var(--text-muted); margin-top: -2px; letter-spacing: 0.5px;">JOB DECK</small></h1>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-link active" data-tab="dashboard">
+                    <span class="nav-link-icon">📊</span>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-link" data-tab="pipeline">
+                    <span class="nav-link-icon">🎯</span>
+                    <span>Pipeline Vagas</span>
+                </a>
+                <a href="#" class="nav-link" data-tab="config">
+                    <span class="nav-link-icon">⚙️</span>
+                    <span>Configurações</span>
+                </a>
+            </nav>
+            
+            <div class="sidebar-footer" id="sidebar-footer-container">
+                <div class="user-badge">
+                    <div class="user-avatar">U</div>
+                    <div class="user-info">
+                        <h4>Usuário Local</h4>
+                        <p>Plano Individual 100% Free</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="content-header">
+                <div>
+                    <h1 class="page-title" id="page-title-label">Dashboard</h1>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <button class="btn btn-secondary" id="btn-header-profile-trigger" style="padding: 0; font-size: 1rem; border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;">
+                        👤
+                    </button>
+                    <button class="btn btn-primary" id="btn-add-job-trigger">
+                        <span>➕</span> Cadastrar Vaga
+                    </button>
+                </div>
+            </header>
+
+            <!-- TAB 1: DASHBOARD -->
+            <section class="tab-content active" id="tab-dashboard">
+                <div class="dashboard-grid">
+                    <div class="stat-card blue">
+                        <span class="stat-label">Total de Vagas</span>
+                        <span class="stat-value" id="stat-total-jobs">0</span>
+                    </div>
+                    <div class="stat-card green">
+                        <span class="stat-label">Vagas Aplicadas</span>
+                        <span class="stat-value" id="stat-applied-jobs">0</span>
+                    </div>
+                    <div class="stat-card yellow">
+                        <span class="stat-label">Entrevistas Agendadas</span>
+                        <span class="stat-value" id="stat-interview-jobs">0</span>
+                    </div>
+                    <div class="stat-card red">
+                        <span class="stat-label">Prazos Próximos</span>
+                        <span class="stat-value" id="stat-alert-tasks">0</span>
+                    </div>
+                </div>
+
+                <div class="dashboard-two-col">
+                    <!-- Column Left: Prazos e Tarefas Ativas -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">📅 Próximos Prazos & Entrevistas</h3>
+                        </div>
+                        <div id="dashboard-tasks-list">
+                            <p style="color: var(--text-muted); font-size: 0.9rem; text-align: center; padding: 20px;">Nenhum prazo pendente. Bom trabalho!</p>
+                        </div>
+                    </div>
+
+                    <!-- Column Right: Conversão do Funil -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">📈 Conversão de Candidaturas</h3>
+                        </div>
+                        <div id="dashboard-conversion-funnel" style="display: flex; flex-direction: column; gap: 16px;">
+                            <!-- Dinamicamente gerado via JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: PIPELINE / KANBAN -->
+            <section class="tab-content" id="tab-pipeline">
+                <div class="kanban-board" id="kanban-board-container">
+                    <!-- Columns will be rendered dynamically by app.js -->
+                </div>
+            </section>
+
+            <!-- TAB 3: CONFIGURAÇÕES -->
+            <section class="tab-content" id="tab-config">
+                <div class="config-grid">
+                    <!-- Col Left: API Configs -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">🤖 Configuração de Provedor de IA</h3>
+                        </div>
+                        <form id="config-api-form">
+                            <div class="form-group">
+                                <label class="form-label" for="ai-provider">Provedor Ativo</label>
+                                <select class="form-select" id="ai-provider">
+                                    <option value="gemini">Google Gemini (API Free Studio)</option>
+                                    <option value="ollama">Ollama (Servidor Local Offline)</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group" id="group-gemini-key">
+                                <label class="form-label" for="gemini-key">Gemini API Key</label>
+                                <input type="password" class="form-input" id="gemini-key" placeholder="AIzaSy...">
+                                <span style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px; display: block;">
+                                    Obtenha uma chave gratuita no <a href="https://aistudio.google.com/" target="_blank" style="color: var(--primary);">Google AI Studio</a>.
+                                </span>
+                            </div>
+
+                            <div class="form-group" id="group-ollama-host" style="display: none;">
+                                <label class="form-label" for="ollama-host">Ollama Server Host</label>
+                                <input type="text" class="form-input" id="ollama-host" value="http://localhost:11434">
+                                <label class="form-label" for="ollama-model" style="margin-top: 12px;">Modelo Ollama</label>
+                                <input type="text" class="form-input" id="ollama-model" value="gemma2">
+                            </div>
+
+                            <button type="submit" class="btn btn-primary" style="width: 100%;">💾 Salvar Configurações</button>
+                        </form>
+                        
+                        <div style="margin-top: 24px;">
+                            <h4 style="font-size: 0.85rem; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 8px;">Console de Logs</h4>
+                            <div class="api-logs" id="api-logs-console">
+                                <div class="api-log-entry">Console iniciado. Pronto para conexões.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="panel" style="margin-top: 20px;">
+                        <div class="panel-header">
+                            <h3 class="panel-title">☁️ Sincronismo Supabase & Google Calendar</h3>
+                        </div>
+                        <form id="config-cloud-form">
+                            <div class="form-group">
+                                <label class="form-label" for="supabase-url">Supabase URL</label>
+                                <input type="text" class="form-input" id="supabase-url" placeholder="https://xxxx.supabase.co">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="supabase-key">Supabase Public Anon Key</label>
+                                <input type="password" class="form-input" id="supabase-key" placeholder="eyJhbGciOi...">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="google-client-id">Google Client ID</label>
+                                <input type="text" class="form-input" id="google-client-id" placeholder="xxxx.apps.googleusercontent.com">
+                            </div>
+                            <div style="display: flex; gap: 8px; flex-direction: column;">
+                                <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;">💾 Salvar Credenciais</button>
+                                <button type="button" class="btn btn-secondary" id="btn-connect-gcal" style="display: none; width: 100%; justify-content: center; margin-top: 8px;">Conectar Agenda</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Col Right: Resume Master -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3 class="panel-title">📄 Currículo Master (Texto)</h3>
+                        </div>
+                        <div class="form-group" style="height: calc(100% - 60px); display: flex; flex-direction: column;">
+                            <label class="form-label" for="master-resume">Texto Completo do Currículo</label>
+                            <textarea class="form-textarea" id="master-resume" style="flex-grow: 1; min-height: 250px;" placeholder="Cole aqui o texto completo do seu currículo principal para cálculo de Match Score..."></textarea>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODAL 1: CADASTRAR / EDITAR VAGA -->
+    <div class="modal-overlay" id="modal-new-job">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 class="modal-title" id="modal-new-job-title">Nova Vaga</h3>
+                <button class="modal-close" id="btn-close-new-job-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-job-editor">
+                    <input type="hidden" id="edit-job-id">
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label class="form-label" for="job-title-input">Cargo / Função</label>
+                            <input type="text" class="form-input" id="job-title-input" required placeholder="ex: Software Engineer">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="job-company-input">Empresa</label>
+                            <input type="text" class="form-input" id="job-company-input" required placeholder="ex: Google">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row-2">
+                        <div class="form-group">
+                            <label class="form-label" for="job-url-input">URL da Vaga</label>
+                            <input type="url" class="form-input" id="job-url-input" placeholder="ex: https://linkedin.com/jobs/...">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="job-status-input">Status Inicial</label>
+                            <select class="form-select" id="job-status-input">
+                                <option value="Salva">Salva</option>
+                                <option value="Analisada">Analisada</option>
+                                <option value="Aplicada">Aplicada</option>
+                                <option value="Networking">Networking</option>
+                                <option value="Entrevista">Entrevista</option>
+                                <option value="Oferta">Oferta</option>
+                                <option value="Encerrada">Encerrada</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="job-description-input">Descrição da Vaga</label>
+                        <textarea class="form-textarea" id="job-description-input" placeholder="Cole os requisitos, atribuições e descrição completa da vaga para análise de Match Score..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="btn-cancel-job-save">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btn-submit-job-save">💾 Salvar Vaga</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: DETALHES E TIMELINE DA VAGA -->
+    <div class="modal-overlay" id="modal-job-details">
+        <div class="modal-container" style="max-width: 900px;">
+            <div class="modal-header">
+                <div>
+                    <span class="job-company" id="detail-company" style="font-size: 0.85rem; letter-spacing: 1px;">EMPRESA</span>
+                    <h3 class="modal-title" id="detail-title" style="font-size: 1.5rem; margin-top: 4px;">Título da Vaga</h3>
+                </div>
+                <button class="modal-close" id="btn-close-details-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="detail-layout">
+                    <!-- Left: Details & AI Calculations -->
+                    <div class="detail-main">
+                        <!-- Actions & Status dropdown -->
+                        <div class="panel" style="margin-bottom: 16px; padding: 16px; display: flex; align-items: center; justify-content: space-between; gap: 16px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; color: var(--text-secondary);">Mudar Status:</span>
+                                <select class="form-select" id="detail-status-select" style="width: auto; padding: 6px 12px; font-size: 0.85rem;">
+                                    <option value="Salva">Salva</option>
+                                    <option value="Analisada">Analisada</option>
+                                    <option value="Aplicada">Aplicada</option>
+                                    <option value="Networking">Networking</option>
+                                    <option value="Entrevista">Entrevista</option>
+                                    <option value="Oferta">Oferta</option>
+                                    <option value="Encerrada">Encerrada</option>
+                                </select>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <a href="#" id="detail-job-url" target="_blank" class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.8rem;">🌐 Link Vaga</a>
+                                <button id="btn-delete-job" class="btn btn-danger" style="padding: 6px 12px; font-size: 0.8rem;">🗑️ Excluir</button>
+                            </div>
+                        </div>
+
+                        <!-- Match Score Box -->
+                        <div class="panel" style="margin-bottom: 16px;">
+                            <div class="panel-header" style="margin-bottom: 12px; padding-bottom: 8px; display: flex; justify-content: space-between;">
+                                <h3 class="panel-title">🎯 Match Score & Skills</h3>
+                                <button class="btn btn-primary" id="btn-run-match-score" style="padding: 6px 12px; font-size: 0.8rem;">🔥 Analisar com IA</button>
+                            </div>
+                            <div class="score-gauge-container" id="match-score-gauge-box">
+                                <p style="color: var(--text-muted); font-size: 0.85rem;">Nenhuma análise realizada ainda. Clique em "Analisar com IA".</p>
+                            </div>
+                        </div>
+
+                        <!-- Resume Tailoring Box -->
+                        <div class="panel" style="margin-bottom: 16px;">
+                            <div class="panel-header" style="margin-bottom: 12px; padding-bottom: 8px; display: flex; justify-content: space-between;">
+                                <h3 class="panel-title">📄 Resume Tailoring (Customização)</h3>
+                                <button class="btn btn-primary" id="btn-run-resume-tailor" style="padding: 6px 12px; font-size: 0.8rem;">✨ Gerar Versão Customizada</button>
+                            </div>
+                            <div id="resume-tailoring-box" style="background: rgba(0, 0, 0, 0.2); border-radius: var(--radius-sm); border: 1px solid var(--border-color); padding: 16px; font-size: 0.9rem; line-height: 1.6; min-height: 80px; color: var(--text-secondary);">
+                                <p style="color: var(--text-muted); font-size: 0.85rem; text-align: center;">Clique em "Gerar Versão Customizada" para adaptar seus pontos fortes a essa vaga.</p>
+                            </div>
+                        </div>
+
+                        <!-- Job Description Text toggle -->
+                        <div class="panel" style="margin-bottom: 0;">
+                            <div class="panel-header" style="margin-bottom: 12px; padding-bottom: 8px;">
+                                <h3 class="panel-title">📝 Requisitos e Descrição</h3>
+                            </div>
+                            <div id="detail-description-box" style="white-space: pre-line; font-size: 0.85rem; color: var(--text-secondary); max-height: 200px; overflow-y: auto; background: rgba(0, 0, 0, 0.15); padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                                Descrição...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: Deadlines, Tasks & Timeline -->
+                    <div class="detail-side">
+                        <!-- Tasks panel -->
+                        <div class="panel" style="margin-bottom: 16px;">
+                            <div class="panel-header" style="margin-bottom: 12px; padding-bottom: 8px;">
+                                <h3 class="panel-title">✅ Checklist de Prazos</h3>
+                            </div>
+                            
+                            <!-- Add task quick form -->
+                            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                                <input type="text" class="form-input" id="new-task-title-input" placeholder="ex: Enviar teste prático..." style="padding: 6px 10px; font-size: 0.85rem;">
+                                <input type="date" class="form-input" id="new-task-date-input" style="padding: 6px 10px; font-size: 0.85rem; width: 130px;">
+                                <button class="btn btn-primary" id="btn-add-task-submit" style="padding: 6px 12px;">➕</button>
+                            </div>
+
+                            <div id="detail-tasks-list" style="max-height: 180px; overflow-y: auto;">
+                                <!-- Rendered dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Notes & Timeline panel -->
+                        <div class="panel" style="margin-bottom: 0; display: flex; flex-direction: column; flex-grow: 1;">
+                            <div class="panel-header" style="margin-bottom: 12px; padding-bottom: 8px;">
+                                <h3 class="panel-title">🕒 Histórico & Anotações</h3>
+                            </div>
+                            
+                            <!-- Add note quick form -->
+                            <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+                                <input type="text" class="form-input" id="new-note-text-input" placeholder="Anotação rápida..." style="padding: 6px 10px; font-size: 0.85rem;">
+                                <button class="btn btn-primary" id="btn-add-note-submit" style="padding: 6px 12px; font-size: 0.85rem;">Salvar</button>
+                            </div>
+
+                            <div id="detail-timeline-list" style="max-height: 250px; overflow-y: auto;">
+                                <!-- Timeline items -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: AUTENTICAÇÃO CLOUD -->
+    <div class="modal-overlay" id="modal-auth">
+        <div class="modal-container" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="auth-modal-title">Entrar na Nuvem</h3>
+                <button class="modal-close" id="btn-close-auth-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="form-auth">
+                    <div class="form-group">
+                        <label class="form-label" for="auth-email">E-mail</label>
+                        <input type="email" class="form-input" id="auth-email" required placeholder="seu@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="auth-password">Senha</label>
+                        <input type="password" class="form-input" id="auth-password" required placeholder="******">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px;">
+                        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;" id="btn-auth-submit">Entrar</button>
+                        <button type="button" class="btn btn-secondary" style="width: 100%; justify-content: center;" id="btn-auth-toggle">Criar uma conta nova</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>
