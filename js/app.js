@@ -440,7 +440,7 @@ const UIManager = {
                 document.getElementById("auth-modal-title").innerText = "Sua Conta (Nuvem)";
                 document.getElementById("form-auth").innerHTML = `
                     <div style="text-align: center; margin-bottom: 20px;">
-                        <span style="font-size: 3rem; display: block; margin-bottom: 12px;">☁️</span>
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block; margin: 0 auto 12px; color: var(--action-blue);"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
                         <p style="font-size: 0.95rem; color: var(--text-primary); margin-bottom: 4px;">Logado como:</p>
                         <strong style="color: var(--primary-light); font-size: 1rem; word-break: break-all;">${session.user.email}</strong>
                     </div>
@@ -562,7 +562,7 @@ const UIManager = {
                 
                 document.getElementById("match-score-gauge-box").innerHTML = `
                     <div style="text-align: center; color: var(--primary-light);">
-                        <span style="font-size: 1.5rem; display: block; animation: bounce 1s infinite;">⚡</span>
+                        <div class="spinner" style="width: 24px; height: 24px; border: 3px solid var(--border-color); border-top-color: var(--action-blue); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 8px;"></div>
                         Processando Análise por IA...
                     </div>
                 `;
@@ -582,7 +582,7 @@ const UIManager = {
                 
                 document.getElementById("resume-tailoring-box").innerHTML = `
                     <div style="text-align: center; color: var(--primary-light);">
-                        <span style="font-size: 1.5rem; display: block; animation: bounce 1s infinite;">✨</span>
+                        <div class="spinner" style="width: 24px; height: 24px; border: 3px solid var(--border-color); border-top-color: var(--action-blue); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 8px;"></div>
                         Gerando adaptações...
                     </div>
                 `;
@@ -822,7 +822,7 @@ const UIManager = {
                 btn.innerText = "🛑 Desconectar Agenda";
                 btn.className = "btn btn-danger";
             } else {
-                btn.innerText = "📅 Conectar Google Agenda";
+                btn.innerText = "Conectar Google Agenda";
                 btn.className = "btn btn-secondary";
             }
         } else {
@@ -839,10 +839,10 @@ const UIManager = {
             footerContainer.innerHTML = `
                 <div class="user-badge" style="display: flex; flex-direction: column; align-items: flex-start; gap: 4px;">
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <div class="user-avatar" style="width: 28px; height: 28px; font-size: 0.8rem;">☁️</div>
+                        <div class="user-avatar" style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--muted); border: 1px solid var(--border-color); color: var(--text-primary);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg></div>
                         <div class="user-info" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                             <h4 style="font-size: 0.78rem;">${session.user.email}</h4>
-                            <p style="color: var(--success); font-size: 0.68rem; font-weight: 600;">☁️ Sincronizado</p>
+                            <p style="color: var(--success); font-size: 0.68rem; font-weight: 600;">Sincronizado</p>
                         </div>
                     </div>
                     <button class="btn btn-danger" id="btn-logout" style="width: 100%; font-size: 0.7rem; padding: 4px 8px; margin-top: 8px; justify-content: center;">Sair / Desconectar</button>
@@ -857,7 +857,9 @@ const UIManager = {
             });
         } else {
             footerContainer.innerHTML = `
-                <button class="btn btn-secondary" id="btn-login-trigger" style="width: 100%; font-size: 0.78rem; padding: 8px; justify-content: center;">🔑 Entrar / Sincronizar</button>
+                <button class="btn btn-secondary" id="btn-login-trigger" style="width: 100%; font-size: 0.78rem; padding: 8px; justify-content: center; display: flex; align-items: center; gap: 6px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg> Entrar / Sincronizar
+                </button>
             `;
             // bind login trigger
             document.getElementById("btn-login-trigger").addEventListener("click", () => {
@@ -919,7 +921,7 @@ const UIManager = {
                 return `
                     <div class="task-item" onclick="UIManager.openJobDetails('${t.jobId}')" style="cursor: pointer;">
                         <div class="task-item-left">
-                            <span style="font-size: 1.1rem;">📅</span>
+                            <span style="display: flex; align-items: center; color: var(--text-secondary);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>
                             <div>
                                 <h4 class="task-title" style="font-size: 0.9rem; font-weight: 600;">${t.title}</h4>
                                 <p style="font-size: 0.72rem; color: var(--text-muted);">${t.jobTitle} @ ${t.jobCompany}</p>
@@ -992,7 +994,7 @@ const UIManager = {
                     alertsHtml = `<span class="deadline-indicator warning">⏰ Hoje</span>`;
                 } else if (activeTasks.length > 0) {
                     activeTasks.sort((a,b) => a.date.localeCompare(b.date));
-                    alertsHtml = `<span class="deadline-indicator">📅 ${activeTasks[0].date}</span>`;
+                    alertsHtml = `<span class="deadline-indicator">${activeTasks[0].date}</span>`;
                 }
                 
                 return `
@@ -1145,7 +1147,7 @@ const UIManager = {
             tailorBox.innerHTML = `
                 <div style="text-align: center; padding: 10px; color: var(--text-secondary);">
                     <p style="font-size: 0.85rem; margin-bottom: 10px;">Sem adaptações salvas para esta candidatura.</p>
-                    <button class="btn btn-secondary" onclick="document.getElementById('btn-run-resume-tailor').click();" style="font-size: 0.85rem; padding: 6px 16px;">✨ Gerar Versão Customizada</button>
+                    <button class="btn btn-secondary" onclick="document.getElementById('btn-run-resume-tailor').click();" style="font-size: 0.85rem; padding: 6px 16px;">Gerar Versão Customizada</button>
                 </div>
             `;
         }
