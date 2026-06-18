@@ -14,6 +14,7 @@ Este diretório armazena o histórico e o progresso de cada sessão de desenvolv
 | S-04 | 2026-06-18 10:50 | Planejamento do MVP em 1 Hora | Definir plano de especificação e desenvolvimento unificado para todo o MVP. | [README.md](file:///c:/Users/Pulse%20Mais/OneDrive/Central-vagas/onion-portable/docs/sessions/2026-06-18_1050_planejamento-do-mvp-1h/README.md) |
 | S-05 | 2026-06-18 10:52 | Desenvolvimento do MVP Completo | Implementar index.html, styles.css e app.js cobrindo as 6 features. | [README.md](file:///c:/Users/Pulse%20Mais/OneDrive/Central-vagas/onion-portable/docs/sessions/2026-06-18_1052_desenvolvimento-do-mvp-completo/README.md) |
 | S-06 | 2026-06-18 11:18 | Otimização Mobile e Perfil no Header | Tornar layout responsivo para smartphones e mover auth para o header. | [README.md](file:///c:/Users/Pulse%20Mais/OneDrive/Central-vagas/onion-portable/docs/sessions/2026-06-18_1118_otimizacao-mobile-e-header-profile/README.md) |
+| S-07 | 2026-06-18 11:40 | Renomeação e Publicação no GitHub | Renomear aplicação para Next Step - Job Deck e publicar no GitHub da usuária. | [README.md](file:///c:/Users/Pulse%20Mais/OneDrive/Central-vagas/onion-portable/docs/sessions/2026-06-18_1140_renomeacao-e-publicacao-github/README.md) |
 
 
 ---
