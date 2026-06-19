@@ -219,5 +219,52 @@ export const SupabaseDB = {
         }
         
         logToConsole(`Migração concluída! ${migratedCount} vaga(s) sincronizada(s) com a nuvem.`, "success");
+    },
+    
+    // --- USER PROFILE OPERATIONS ---
+    async getProfile() {
+        if (!this.isInitialized()) return null;
+        const user = await this.getCurrentUser();
+        if (!user) return null;
+        
+        const { data, error } = await this.client
+            .from("profiles")
+            .select("*")
+            .eq("user_id", user.id)
+            .maybeSingle();
+            
+        if (error) throw error;
+        
+        if (data) {
+            return {
+                provider: data.provider,
+                geminiKey: data.gemini_key,
+                ollamaHost: data.ollama_host,
+                ollamaModel: data.ollama_model,
+                masterResume: data.master_resume
+            };
+        }
+        return null;
+    },
+    
+    async saveProfile(profile) {
+        if (!this.isInitialized()) return null;
+        const user = await this.getCurrentUser();
+        if (!user) return null;
+        
+        const { data, error } = await this.client
+            .from("profiles")
+            .upsert({
+                user_id: user.id,
+                provider: profile.provider,
+                gemini_key: profile.geminiKey,
+                ollama_host: profile.ollamaHost,
+                ollama_model: profile.ollamaModel,
+                master_resume: profile.masterResume
+            })
+            .select();
+            
+        if (error) throw error;
+        return data ? data[0] : null;
     }
 };

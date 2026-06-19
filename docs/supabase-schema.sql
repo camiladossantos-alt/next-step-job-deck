@@ -70,3 +70,32 @@ CREATE POLICY "Usuários podem atualizar suas próprias tarefas"
 CREATE POLICY "Usuários podem excluir suas próprias tarefas" 
     ON public.tasks FOR DELETE 
     USING (auth.uid() = user_id);
+
+
+-- 3. Tabela de Perfis/Configurações (Profiles)
+CREATE TABLE public.profiles (
+    user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    provider TEXT DEFAULT 'gemini',
+    gemini_key TEXT DEFAULT '',
+    ollama_host TEXT DEFAULT 'http://localhost:11434',
+    ollama_model TEXT DEFAULT 'gemma2',
+    master_resume TEXT DEFAULT '',
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Habilitar Row Level Security (RLS)
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+
+-- Políticas de Acesso RLS para Profiles
+CREATE POLICY "Usuários podem visualizar seu próprio perfil" 
+    ON public.profiles FOR SELECT 
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Usuários podem criar seu próprio perfil" 
+    ON public.profiles FOR INSERT 
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Usuários podem atualizar seu próprio perfil" 
+    ON public.profiles FOR UPDATE 
+    USING (auth.uid() = user_id);
+

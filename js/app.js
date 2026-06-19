@@ -20,6 +20,13 @@ const DEFAULT_CONFIG = {
     googleClientId: ""
 };
 
+const ServerConfig = {
+    supabaseUrl: "",
+    supabaseKey: "",
+    googleClientId: "",
+    geminiKey: ""
+};
+
 // --- STAGE CHANGER TIMELINES ---
 function logToConsole(message, type = "info") {
     const consoleEl = document.getElementById("api-logs-console");
@@ -175,11 +182,45 @@ const StorageManager = {
     
     getConfig() {
         const data = localStorage.getItem("jsos_config");
-        return data ? { ...DEFAULT_CONFIG, ...JSON.parse(data) } : DEFAULT_CONFIG;
+        const local = data ? { ...DEFAULT_CONFIG, ...JSON.parse(data) } : DEFAULT_CONFIG;
+        
+        return {
+            ...local,
+            supabaseUrl: ServerConfig.supabaseUrl || local.supabaseUrl,
+            supabaseKey: ServerConfig.supabaseKey || local.supabaseKey,
+            googleClientId: ServerConfig.googleClientId || local.googleClientId,
+            geminiKey: ServerConfig.geminiKey || local.geminiKey
+        };
     },
     
     saveConfig(config) {
-        localStorage.setItem("jsos_config", JSON.stringify(config));
+        const cleanConfig = { ...config };
+        if (ServerConfig.supabaseUrl) delete cleanConfig.supabaseUrl;
+        if (ServerConfig.supabaseKey) delete cleanConfig.supabaseKey;
+        if (ServerConfig.googleClientId) delete cleanConfig.googleClientId;
+        if (ServerConfig.geminiKey) delete cleanConfig.geminiKey;
+        
+        localStorage.setItem("jsos_config", JSON.stringify(cleanConfig));
+        
+        this.syncProfileToCloud(config);
+    },
+    
+    async syncProfileToCloud(config) {
+        const user = await SupabaseDB.getCurrentUser();
+        if (user) {
+            try {
+                await SupabaseDB.saveProfile({
+                    provider: config.provider,
+                    geminiKey: config.geminiKey || "",
+                    ollamaHost: config.ollamaHost,
+                    ollamaModel: config.ollamaModel,
+                    masterResume: config.masterResume || ""
+                });
+                logToConsole("Configurações salvas no perfil da nuvem.", "success");
+            } catch (e) {
+                logToConsole("Erro ao salvar perfil na nuvem: " + e.message, "error");
+            }
+        }
     }
 };
 
@@ -361,6 +402,23 @@ let isAuthSignUpMode = false;
 
 const UIManager = {
     async init() {
+        // Fetch server configs first
+        try {
+            const response = await fetch("/api/config");
+            if (response.ok) {
+                const data = await response.json();
+                ServerConfig.supabaseUrl = data.supabaseUrl || "";
+                ServerConfig.supabaseKey = data.supabaseKey || "";
+                ServerConfig.googleClientId = data.googleClientId || "";
+                ServerConfig.geminiKey = data.geminiKey || "";
+                if (ServerConfig.supabaseUrl && ServerConfig.supabaseKey) {
+                    logToConsole("Credenciais do servidor carregadas.");
+                }
+            }
+        } catch (e) {
+            console.warn("Não foi possível carregar configurações do servidor. Usando local.", e);
+        }
+
         this.bindEvents();
         this.loadSettingsForm();
         
@@ -374,6 +432,27 @@ const UIManager = {
                 const session = await SupabaseDB.getSession();
                 if (session) {
                     logToConsole(`Usuário logado: ${session.user.email}`, "success");
+                    
+                    // Fetch and sync profile settings
+                    try {
+                        const profile = await SupabaseDB.getProfile();
+                        if (profile) {
+                            const localConfig = StorageManager.getConfig();
+                            const updatedConfig = {
+                                ...localConfig,
+                                provider: profile.provider || localConfig.provider,
+                                geminiKey: profile.geminiKey || localConfig.geminiKey,
+                                ollamaHost: profile.ollamaHost || localConfig.ollamaHost,
+                                ollamaModel: profile.ollamaModel || localConfig.ollamaModel,
+                                masterResume: profile.masterResume || localConfig.masterResume
+                            };
+                            localStorage.setItem("jsos_config", JSON.stringify(updatedConfig));
+                            this.loadSettingsForm();
+                        }
+                    } catch (err) {
+                        console.error("Erro ao sincronizar perfil ao inicializar:", err);
+                    }
+                    
                     // Auto migrate local jobs to cloud
                     const localJobs = StorageManager.getLocalJobs();
                     await SupabaseDB.migrateLocalData(localJobs);
@@ -434,61 +513,8 @@ const UIManager = {
         });
         
         // Header Profile Modal Trigger
-        document.getElementById("btn-header-profile-trigger").addEventListener("click", async () => {
-            const session = await SupabaseDB.getSession();
-            if (session) {
-                document.getElementById("auth-modal-title").innerText = "Sua Conta (Nuvem)";
-                document.getElementById("form-auth").innerHTML = `
-                    <div style="text-align: center; margin-bottom: 20px;">
-                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block; margin: 0 auto 12px; color: var(--action-blue);"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
-                        <p style="font-size: 0.95rem; color: var(--text-primary); margin-bottom: 4px;">Logado como:</p>
-                        <strong style="color: var(--primary-light); font-size: 1rem; word-break: break-all;">${session.user.email}</strong>
-                    </div>
-                    <button type="button" class="btn btn-danger" id="btn-modal-logout" style="width: 100%; justify-content: center; margin-top: 16px;">Sair / Desconectar</button>
-                `;
-                
-                document.getElementById("btn-modal-logout").addEventListener("click", async () => {
-                    await SupabaseDB.signOut();
-                    logToConsole("Sessão online encerrada. Modo local ativo.", "info");
-                    document.getElementById("modal-auth").classList.remove("open");
-                    UIManager.renderAll();
-                });
-            } else {
-                document.getElementById("auth-modal-title").innerText = "Entrar na Nuvem";
-                document.getElementById("form-auth").innerHTML = `
-                    <div class="form-group">
-                        <label class="form-label" for="auth-email">E-mail</label>
-                        <input type="email" class="form-input" id="auth-email" required placeholder="seu@email.com">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label" for="auth-password">Senha</label>
-                        <input type="password" class="form-input" id="auth-password" required placeholder="******">
-                    </div>
-                    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px;">
-                        <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;" id="btn-auth-submit">Entrar</button>
-                        <button type="button" class="btn btn-secondary" style="width: 100%; justify-content: center;" id="btn-auth-toggle">Criar uma conta nova</button>
-                    </div>
-                `;
-                
-                isAuthSignUpMode = false;
-                document.getElementById("btn-auth-toggle").addEventListener("click", () => {
-                    isAuthSignUpMode = !isAuthSignUpMode;
-                    const submitBtn = document.getElementById("btn-auth-submit");
-                    const toggleBtn = document.getElementById("btn-auth-toggle");
-                    const title = document.getElementById("auth-modal-title");
-                    
-                    if (isAuthSignUpMode) {
-                        title.innerText = "Criar Nova Conta";
-                        submitBtn.innerText = "Cadastrar";
-                        toggleBtn.innerText = "Já tem conta? Fazer Login";
-                    } else {
-                        title.innerText = "Entrar na Nuvem";
-                        submitBtn.innerText = "Entrar";
-                        toggleBtn.innerText = "Criar uma conta nova";
-                    }
-                });
-            }
-            document.getElementById("modal-auth").classList.add("open");
+        document.getElementById("btn-header-profile-trigger").addEventListener("click", () => {
+            this.openAuthModal();
         });
         
         // Auth Submit Form
@@ -650,6 +676,63 @@ const UIManager = {
         });
     },
     
+    async openAuthModal() {
+        const session = await SupabaseDB.getSession();
+        if (session) {
+            document.getElementById("auth-modal-title").innerText = "Sua Conta (Nuvem)";
+            document.getElementById("form-auth").innerHTML = `
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block; margin: 0 auto 12px; color: var(--action-blue);"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+                    <p style="font-size: 0.95rem; color: var(--text-primary); margin-bottom: 4px;">Logado como:</p>
+                    <strong style="color: var(--primary-light); font-size: 1rem; word-break: break-all;">${session.user.email}</strong>
+                </div>
+                <button type="button" class="btn btn-danger" id="btn-modal-logout" style="width: 100%; justify-content: center; margin-top: 16px;">Sair / Desconectar</button>
+            `;
+            
+            document.getElementById("btn-modal-logout").addEventListener("click", async () => {
+                await SupabaseDB.signOut();
+                logToConsole("Sessão online encerrada. Modo local ativo.", "info");
+                document.getElementById("modal-auth").classList.remove("open");
+                UIManager.renderAll();
+            });
+        } else {
+            document.getElementById("auth-modal-title").innerText = "Entrar na Nuvem";
+            document.getElementById("form-auth").innerHTML = `
+                <div class="form-group">
+                    <label class="form-label" for="auth-email">E-mail</label>
+                    <input type="email" class="form-input" id="auth-email" required placeholder="seu@email.com">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="auth-password">Senha</label>
+                    <input type="password" class="form-input" id="auth-password" required placeholder="******">
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 24px;">
+                    <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center;" id="btn-auth-submit">Entrar</button>
+                    <button type="button" class="btn btn-secondary" style="width: 100%; justify-content: center;" id="btn-auth-toggle">Criar uma conta nova</button>
+                </div>
+            `;
+            
+            isAuthSignUpMode = false;
+            document.getElementById("btn-auth-toggle").addEventListener("click", () => {
+                isAuthSignUpMode = !isAuthSignUpMode;
+                const submitBtn = document.getElementById("btn-auth-submit");
+                const toggleBtn = document.getElementById("btn-auth-toggle");
+                const title = document.getElementById("auth-modal-title");
+                
+                if (isAuthSignUpMode) {
+                    title.innerText = "Criar Nova Conta";
+                    submitBtn.innerText = "Cadastrar";
+                    toggleBtn.innerText = "Já tem conta? Fazer Login";
+                } else {
+                    title.innerText = "Entrar na Nuvem";
+                    submitBtn.innerText = "Entrar";
+                    toggleBtn.innerText = "Criar uma conta nova";
+                }
+            });
+        }
+        document.getElementById("modal-auth").classList.add("open");
+    },
+    
     async handleAuthSubmit() {
         const email = document.getElementById("auth-email").value.trim();
         const password = document.getElementById("auth-password").value;
@@ -669,6 +752,33 @@ const UIManager = {
                 await SupabaseDB.signIn(email, password);
                 logToConsole("Sessão iniciada na nuvem!", "success");
                 document.getElementById("modal-auth").classList.remove("open");
+                
+                // Fetch user profile settings from Supabase
+                try {
+                    logToConsole("Carregando perfil e configurações da nuvem...");
+                    const profile = await SupabaseDB.getProfile();
+                    if (profile) {
+                        const localConfig = StorageManager.getConfig();
+                        const updatedConfig = {
+                            ...localConfig,
+                            provider: profile.provider || localConfig.provider,
+                            geminiKey: profile.geminiKey || localConfig.geminiKey,
+                            ollamaHost: profile.ollamaHost || localConfig.ollamaHost,
+                            ollamaModel: profile.ollamaModel || localConfig.ollamaModel,
+                            masterResume: profile.masterResume || localConfig.masterResume
+                        };
+                        const cleanConfig = { ...updatedConfig };
+                        if (ServerConfig.supabaseUrl) delete cleanConfig.supabaseUrl;
+                        if (ServerConfig.supabaseKey) delete cleanConfig.supabaseKey;
+                        if (ServerConfig.googleClientId) delete cleanConfig.googleClientId;
+                        if (ServerConfig.geminiKey) delete cleanConfig.geminiKey;
+                        localStorage.setItem("jsos_config", JSON.stringify(cleanConfig));
+                        logToConsole("Configurações sincronizadas com o perfil da nuvem!", "success");
+                        this.loadSettingsForm();
+                    }
+                } catch (err) {
+                    logToConsole("Falha ao recuperar perfil da nuvem: " + err.message, "error");
+                }
                 
                 // Migrate local jobs to cloud on login
                 const localJobs = StorageManager.getLocalJobs();
@@ -756,15 +866,53 @@ const UIManager = {
     loadSettingsForm() {
         const config = StorageManager.getConfig();
         document.getElementById("ai-provider").value = config.provider;
-        document.getElementById("gemini-key").value = config.geminiKey || "";
+        
+        const geminiKeyEl = document.getElementById("gemini-key");
+        if (ServerConfig.geminiKey) {
+            geminiKeyEl.value = "";
+            geminiKeyEl.disabled = true;
+            geminiKeyEl.placeholder = "Configurado automaticamente pelo servidor (Vercel)";
+        } else {
+            geminiKeyEl.value = config.geminiKey || "";
+            geminiKeyEl.disabled = false;
+            geminiKeyEl.placeholder = "AIzaSy...";
+        }
+        
         document.getElementById("ollama-host").value = config.ollamaHost || "http://localhost:11434";
         document.getElementById("ollama-model").value = config.ollamaModel || "gemma2";
         document.getElementById("master-resume").value = config.masterResume || "";
         
         // Cloud Creds
-        document.getElementById("supabase-url").value = config.supabaseUrl || "";
-        document.getElementById("supabase-key").value = config.supabaseKey || "";
-        document.getElementById("google-client-id").value = config.googleClientId || "";
+        const sbUrlEl = document.getElementById("supabase-url");
+        const sbKeyEl = document.getElementById("supabase-key");
+        if (ServerConfig.supabaseUrl) {
+            sbUrlEl.value = "";
+            sbUrlEl.disabled = true;
+            sbUrlEl.placeholder = "Configurado automaticamente pelo servidor (Vercel)";
+            
+            sbKeyEl.value = "";
+            sbKeyEl.disabled = true;
+            sbKeyEl.placeholder = "Configurado automaticamente pelo servidor (Vercel)";
+        } else {
+            sbUrlEl.value = config.supabaseUrl || "";
+            sbUrlEl.disabled = false;
+            sbUrlEl.placeholder = "https://xxxx.supabase.co";
+            
+            sbKeyEl.value = config.supabaseKey || "";
+            sbKeyEl.disabled = false;
+            sbKeyEl.placeholder = "eyJhbGciOi...";
+        }
+        
+        const gClientIdEl = document.getElementById("google-client-id");
+        if (ServerConfig.googleClientId) {
+            gClientIdEl.value = "";
+            gClientIdEl.disabled = true;
+            gClientIdEl.placeholder = "Configurado automaticamente pelo servidor (Vercel)";
+        } else {
+            gClientIdEl.value = config.googleClientId || "";
+            gClientIdEl.disabled = false;
+            gClientIdEl.placeholder = "xxxx.apps.googleusercontent.com";
+        }
         
         if (config.provider === "gemini") {
             document.getElementById("group-gemini-key").style.display = "block";
@@ -778,7 +926,9 @@ const UIManager = {
     handleSettingsSave() {
         const config = StorageManager.getConfig();
         const provider = document.getElementById("ai-provider").value;
-        const geminiKey = document.getElementById("gemini-key").value.trim();
+        const geminiKey = document.getElementById("gemini-key").disabled
+            ? config.geminiKey
+            : document.getElementById("gemini-key").value.trim();
         const ollamaHost = document.getElementById("ollama-host").value.trim();
         const ollamaModel = document.getElementById("ollama-model").value.trim();
         const masterResume = document.getElementById("master-resume").value.trim();
@@ -790,9 +940,15 @@ const UIManager = {
     
     handleCloudSettingsSave() {
         const config = StorageManager.getConfig();
-        const supabaseUrl = document.getElementById("supabase-url").value.trim();
-        const supabaseKey = document.getElementById("supabase-key").value.trim();
-        const googleClientId = document.getElementById("google-client-id").value.trim();
+        const supabaseUrl = document.getElementById("supabase-url").disabled 
+            ? config.supabaseUrl 
+            : document.getElementById("supabase-url").value.trim();
+        const supabaseKey = document.getElementById("supabase-key").disabled 
+            ? config.supabaseKey 
+            : document.getElementById("supabase-key").value.trim();
+        const googleClientId = document.getElementById("google-client-id").disabled 
+            ? config.googleClientId 
+            : document.getElementById("google-client-id").value.trim();
         
         StorageManager.saveConfig({ ...config, supabaseUrl, supabaseKey, googleClientId });
         logToConsole("Configurações de credenciais salvas. Inicializando módulos...", "success");
@@ -863,7 +1019,7 @@ const UIManager = {
             `;
             // bind login trigger
             document.getElementById("btn-login-trigger").addEventListener("click", () => {
-                document.getElementById("modal-auth").classList.add("open");
+                this.openAuthModal();
             });
         }
     },
