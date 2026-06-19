@@ -700,7 +700,47 @@ const UIManager = {
         });
     },
     
+    setAuthMode(signUpMode) {
+        isAuthSignUpMode = signUpMode;
+        const submitBtn = document.getElementById("btn-auth-submit");
+        const toggleBtn = document.getElementById("btn-auth-toggle");
+        const title = document.getElementById("auth-modal-title");
+        
+        if (!submitBtn || !toggleBtn || !title) return;
+        
+        if (isAuthSignUpMode) {
+            title.innerText = "Criar Nova Conta";
+            submitBtn.innerText = "Cadastrar";
+            toggleBtn.innerText = "Já tem conta? Fazer Login";
+        } else {
+            title.innerText = "Entrar na Nuvem";
+            submitBtn.innerText = "Entrar";
+            toggleBtn.innerText = "Criar uma conta nova";
+        }
+    },
+    
     async openAuthModal() {
+        if (!SupabaseDB.isInitialized()) {
+            document.getElementById("auth-modal-title").innerText = "Supabase não Inicializado";
+            document.getElementById("form-auth").innerHTML = `
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: block; margin: 0 auto 12px; color: var(--danger);"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    <p style="font-size: 0.95rem; color: var(--text-primary); margin-bottom: 8px;">O módulo de nuvem está inativo.</p>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;">
+                        Para habilitar o sincronismo na nuvem, configure a <strong>URL do Supabase</strong> e a <strong>Anon Key</strong> na aba de Configurações.
+                    </p>
+                </div>
+                <button type="button" class="btn btn-primary" id="btn-go-to-settings" style="width: 100%; justify-content: center;">Ir para Configurações</button>
+            `;
+            
+            document.getElementById("btn-go-to-settings").addEventListener("click", () => {
+                document.getElementById("modal-auth").classList.remove("open");
+                this.switchTab("config");
+            });
+            document.getElementById("modal-auth").classList.add("open");
+            return;
+        }
+
         const session = await SupabaseDB.getSession();
         if (session) {
             document.getElementById("auth-modal-title").innerText = "Sua Conta (Nuvem)";
@@ -736,22 +776,9 @@ const UIManager = {
                 </div>
             `;
             
-            isAuthSignUpMode = false;
+            this.setAuthMode(false);
             document.getElementById("btn-auth-toggle").addEventListener("click", () => {
-                isAuthSignUpMode = !isAuthSignUpMode;
-                const submitBtn = document.getElementById("btn-auth-submit");
-                const toggleBtn = document.getElementById("btn-auth-toggle");
-                const title = document.getElementById("auth-modal-title");
-                
-                if (isAuthSignUpMode) {
-                    title.innerText = "Criar Nova Conta";
-                    submitBtn.innerText = "Cadastrar";
-                    toggleBtn.innerText = "Já tem conta? Fazer Login";
-                } else {
-                    title.innerText = "Entrar na Nuvem";
-                    submitBtn.innerText = "Entrar";
-                    toggleBtn.innerText = "Criar uma conta nova";
-                }
+                this.setAuthMode(!isAuthSignUpMode);
             });
         }
         document.getElementById("modal-auth").classList.add("open");
@@ -769,8 +796,7 @@ const UIManager = {
                 await SupabaseDB.signUp(email, password);
                 logToConsole("Conta criada com sucesso! Faça login para começar.", "success");
                 alert("Conta criada! Agora faça o login com suas credenciais.");
-                isAuthSignUpMode = false;
-                document.getElementById("btn-auth-toggle").click();
+                this.setAuthMode(false);
             } else {
                 logToConsole("Autenticando...");
                 await SupabaseDB.signIn(email, password);
@@ -891,14 +917,18 @@ const UIManager = {
         document.getElementById("ai-provider").value = config.provider;
         
         const geminiKeyEl = document.getElementById("gemini-key");
+        const aiProviderPanel = document.getElementById("config-api-form").closest(".panel");
+        
         if (ServerConfig.hasGeminiKey) {
             geminiKeyEl.value = "";
             geminiKeyEl.disabled = true;
             geminiKeyEl.placeholder = "Configurado automaticamente pelo servidor (Vercel)";
+            if (aiProviderPanel) aiProviderPanel.style.display = "none";
         } else {
             geminiKeyEl.value = config.geminiKey || "";
             geminiKeyEl.disabled = false;
             geminiKeyEl.placeholder = "AIzaSy...";
+            if (aiProviderPanel) aiProviderPanel.style.display = "block";
         }
         
         document.getElementById("ollama-host").value = config.ollamaHost || "http://localhost:11434";
@@ -908,22 +938,35 @@ const UIManager = {
         // Cloud Creds
         const sbUrlEl = document.getElementById("supabase-url");
         const sbKeyEl = document.getElementById("supabase-key");
+        const cloudFormPanel = document.getElementById("config-cloud-form").closest(".panel");
+        const cloudFormSubmitBtn = document.querySelector("#config-cloud-form button[type='submit']");
+        
         if (ServerConfig.supabaseUrl) {
             sbUrlEl.value = "";
             sbUrlEl.disabled = true;
             sbUrlEl.placeholder = "Configurado automaticamente pelo servidor (Vercel)";
+            if (sbUrlEl.closest(".form-group")) sbUrlEl.closest(".form-group").style.display = "none";
             
             sbKeyEl.value = "";
             sbKeyEl.disabled = true;
             sbKeyEl.placeholder = "Configurado automaticamente pelo servidor (Vercel)";
+            if (sbKeyEl.closest(".form-group")) sbKeyEl.closest(".form-group").style.display = "none";
+            
+            if (cloudFormSubmitBtn) cloudFormSubmitBtn.style.display = "none";
+            if (cloudFormPanel) cloudFormPanel.style.display = "none";
         } else {
             sbUrlEl.value = config.supabaseUrl || "";
             sbUrlEl.disabled = false;
             sbUrlEl.placeholder = "https://xxxx.supabase.co";
+            if (sbUrlEl.closest(".form-group")) sbUrlEl.closest(".form-group").style.display = "block";
             
             sbKeyEl.value = config.supabaseKey || "";
             sbKeyEl.disabled = false;
             sbKeyEl.placeholder = "eyJhbGciOi...";
+            if (sbKeyEl.closest(".form-group")) sbKeyEl.closest(".form-group").style.display = "block";
+            
+            if (cloudFormSubmitBtn) cloudFormSubmitBtn.style.display = "block";
+            if (cloudFormPanel) cloudFormPanel.style.display = "block";
         }
         
         const gClientIdEl = document.getElementById("google-client-id");
@@ -931,10 +974,12 @@ const UIManager = {
             gClientIdEl.value = "";
             gClientIdEl.disabled = true;
             gClientIdEl.placeholder = "Configurado automaticamente pelo servidor (Vercel)";
+            if (gClientIdEl.closest(".form-group")) gClientIdEl.closest(".form-group").style.display = "none";
         } else {
             gClientIdEl.value = config.googleClientId || "";
             gClientIdEl.disabled = false;
             gClientIdEl.placeholder = "xxxx.apps.googleusercontent.com";
+            if (gClientIdEl.closest(".form-group")) gClientIdEl.closest(".form-group").style.display = "block";
         }
         
         if (config.provider === "gemini") {
@@ -943,6 +988,16 @@ const UIManager = {
         } else {
             document.getElementById("group-gemini-key").style.display = "none";
             document.getElementById("group-ollama-host").style.display = "block";
+        }
+
+        // Adjust Grid Columns if both panels are hidden
+        const configGrid = document.querySelector(".config-grid");
+        if (configGrid) {
+            if (ServerConfig.supabaseUrl && ServerConfig.hasGeminiKey) {
+                configGrid.style.gridTemplateColumns = "1fr";
+            } else {
+                configGrid.style.gridTemplateColumns = "";
+            }
         }
     },
     
@@ -1055,7 +1110,7 @@ const UIManager = {
     },
     
     async renderDashboard() {
-        const jobs = await this.getJobs();
+        const jobs = await StorageManager.getJobs();
         const total = jobs.length;
         const applied = jobs.filter(j => ["Aplicada", "Networking", "Entrevista", "Oferta"].includes(j.status)).length;
         const interviews = jobs.filter(j => j.status === "Entrevista").length;
@@ -1143,7 +1198,7 @@ const UIManager = {
         const container = document.getElementById("kanban-board-container");
         if (!container) return;
         
-        const jobs = await this.getJobs();
+        const jobs = await StorageManager.getJobs();
         
         container.innerHTML = STAGES.map(stage => {
             const stageJobs = jobs.filter(j => j.status === stage);

@@ -11,6 +11,14 @@
     "TST-003": {
       "name": "Integração do Banco Supabase e Perfil do Usuário",
       "path": "testes/plano-teste/supabase-api.plan.json"
+    },
+    "TST-004": {
+      "name": "Fluxo de Autenticação na UI (Cadastrar e Entrar)",
+      "path": "testes/plano-teste/auth-ui.plan.json"
+    },
+    "TST-005": {
+      "name": "Teste Fim a Fim (E2E) do Fluxo de Autenticação",
+      "path": "testes/plano-teste/auth-e2e.plan.json"
     }
   }
 }

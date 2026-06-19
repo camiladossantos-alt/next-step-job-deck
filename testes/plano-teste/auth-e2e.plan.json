@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "testPlanId": "auth-e2e-plan",
+  "tests": [
+    {
+      "id": "TST-005",
+      "name": "Teste Fim a Fim (E2E) do Fluxo de Autenticação",
+      "type": "e2e",
+      "description": "Valida em um navegador real (Chromium via Playwright) o carregamento da aplicação, a verificação da modal de autenticação, o preenchimento de credenciais e a tentativa de autenticação integrada.",
+      "asserts": [
+        "Deve carregar a página inicial do Job Deck sem erros no console.",
+        "Deve abrir a modal de autenticação ao clicar no botão de perfil/entrar.",
+        "Deve permitir a alternância entre Entrar e Cadastrar.",
+        "Deve ocultar as configurações de Supabase e IA se configuradas no servidor (.env).",
+        "Deve tentar fazer login com a conta de teste camilastests@outlook.com e retornar a mensagem esperada."
+      ]
+    }
+  ]
+}

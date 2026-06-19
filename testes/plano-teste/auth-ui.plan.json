@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "testPlanId": "auth-ui-plan",
+  "tests": [
+    {
+      "id": "TST-004",
+      "name": "Fluxo de Autenticação na UI (Cadastrar e Entrar)",
+      "type": "funcional",
+      "description": "Valida o comportamento dos botões de Cadastrar e Entrar na modal de autenticação, cobrindo o fluxo de sucesso, de falha quando o Supabase não está inicializado e a alternância entre modo login e cadastro.",
+      "asserts": [
+        "Deve carregar a modal com o modo inicial de Entrar.",
+        "Deve alternar para o modo Cadastrar ao clicar no botão de toggle.",
+        "Deve disparar a chamada de cadastro/login com os inputs fornecidos.",
+        "Deve emitir alerta apropriado ou exibir aviso se o Supabase não estiver inicializado."
+      ]
+    }
+  ]
+}

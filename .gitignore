@@ -34,3 +34,4 @@ env/
 .env.production.local
 .env.status
 *.env
+.vercel

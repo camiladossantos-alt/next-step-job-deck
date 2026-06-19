@@ -5,10 +5,11 @@
   "main": "index.html",
   "type": "module",
   "scripts": {
-    "dev": "vercel dev",
+    "dev": "npx -y serve .",
     "start": "npx -y serve .",
-    "test": "node --test testes/testes-unitarios/**/*.test.js testes/testes-funcionais/**/*.test.js"
+    "test": "node --test testes/testes-unitarios/**/*.test.js testes/testes-funcionais/**/*.test.js testes/testes-e2e/**/*.test.js"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "devDependencies": {
+    "playwright": "^1.61.0"
+  }
 }
