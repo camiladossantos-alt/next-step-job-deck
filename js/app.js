@@ -255,7 +255,7 @@ Você DEVE responder APENAS com um objeto JSON válido, sem tags markdown, sem e
             if (config.provider === "gemini" && (config.geminiKey || ServerConfig.hasGeminiKey)) {
                 let response;
                 if (config.geminiKey) {
-                    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${config.geminiKey}`, {
+                    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${config.geminiKey}`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
@@ -333,7 +333,7 @@ Responda diretamente com os bullets formatados em Markdown. Sem prefácios ou ex
             if (config.provider === "gemini" && (config.geminiKey || ServerConfig.hasGeminiKey)) {
                 let response;
                 if (config.geminiKey) {
-                    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${config.geminiKey}`, {
+                    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${config.geminiKey}`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
@@ -495,6 +495,54 @@ const UIManager = {
         this.renderAll();
         document.getElementById("modal-job-details").classList.remove("open");
         document.getElementById("modal-auth").classList.remove("open");
+
+        // Handle redirect URL hash parameters / errors
+        this.handleHashParams();
+    },
+
+    handleHashParams() {
+        const hash = (typeof window !== 'undefined' && window.location) ? window.location.hash : "";
+        if (!hash) return;
+
+        const hashClean = hash.replace(/^#\/?/, "");
+        if (!hashClean) return;
+
+        const params = new URLSearchParams(hashClean);
+        const error = params.get("error");
+        const errorCode = params.get("error_code");
+        const errorDesc = params.get("error_description");
+        const type = params.get("type");
+        const accessToken = params.get("access_token");
+
+        if (error || errorCode || errorDesc) {
+            console.error("Supabase redirect error:", { error, errorCode, errorDesc });
+            let message = "Ocorreu um erro ao processar a autenticação.";
+            
+            if (errorCode === "otp_expired" || errorDesc?.toLowerCase().includes("expired") || errorDesc?.toLowerCase().includes("invalid")) {
+                message = "Este link de confirmação expirou ou já foi utilizado. Por favor, tente se cadastrar novamente ou solicitar um novo link de login na modal de perfil.";
+            } else if (errorDesc) {
+                message = decodeURIComponent(errorDesc).replace(/\+/g, " ");
+            }
+
+            if (typeof alert !== "undefined") {
+                alert(`Ops! Algo deu errado:\n\n${message}`);
+            }
+            if (typeof window !== "undefined" && window.history && window.history.replaceState && window.location) {
+                window.history.replaceState(null, null, window.location.pathname + window.location.search);
+            }
+        } else if (accessToken && (type === "signup" || type === "recovery" || type === "invite")) {
+            let message = "Sua conta foi confirmada e ativada com sucesso!";
+            if (type === "recovery") {
+                message = "Link de recuperação validado. Você já pode alterar sua senha.";
+            }
+            if (typeof alert !== "undefined") {
+                alert(`Sucesso!\n\n${message}`);
+            }
+            if (typeof window !== "undefined" && window.history && window.history.replaceState && window.location) {
+                window.history.replaceState(null, null, window.location.pathname + window.location.search);
+            }
+            this.renderAll();
+        }
     },
     
     bindEvents() {

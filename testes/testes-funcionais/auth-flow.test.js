@@ -226,4 +226,32 @@ test('TST-004 - Auth Flow and UI Modals integration', async (t) => {
 
     await UIManager.openAuthModal();
     assert.strictEqual(title.innerText, "Supabase não Inicializado");
+
+    // Test case 5: handleHashParams with expired OTP error hash
+    globalThis.window.location = {
+        hash: '#error=access_denied&error_code=otp_expired&error_description=Email+link+is+invalid+or+has+expired&sb='
+    };
+    
+    let replaceStateCalled = false;
+    globalThis.window.history = {
+        replaceState: () => { replaceStateCalled = true; }
+    };
+    
+    lastAlert = '';
+    UIManager.handleHashParams();
+    
+    assert.ok(lastAlert.includes("expirou ou já foi utilizado"));
+    assert.strictEqual(replaceStateCalled, true);
+    
+    // Test case 6: handleHashParams with successful signup confirmation token hash
+    globalThis.window.location = {
+        hash: '#access_token=mock-token&expires_in=3600&refresh_token=mock-refresh&token_type=bearer&type=signup'
+    };
+    
+    replaceStateCalled = false;
+    lastAlert = '';
+    UIManager.handleHashParams();
+    
+    assert.ok(lastAlert.includes("confirmada e ativada"));
+    assert.strictEqual(replaceStateCalled, true);
 });
