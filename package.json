@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "Next Step - Job Deck — Job Search Tracker & AI Cockpit",
   "main": "index.html",
+  "type": "module",
   "scripts": {
     "dev": "vercel dev",
-    "start": "npx -y serve ."
+    "start": "npx -y serve .",
+    "test": "node --test testes/testes-unitarios/**/*.test.js testes/testes-funcionais/**/*.test.js"
   },
   "dependencies": {},
   "devDependencies": {}

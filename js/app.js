@@ -24,7 +24,7 @@ const ServerConfig = {
     supabaseUrl: "",
     supabaseKey: "",
     googleClientId: "",
-    geminiKey: ""
+    hasGeminiKey: false
 };
 
 // --- STAGE CHANGER TIMELINES ---
@@ -189,7 +189,7 @@ const StorageManager = {
             supabaseUrl: ServerConfig.supabaseUrl || local.supabaseUrl,
             supabaseKey: ServerConfig.supabaseKey || local.supabaseKey,
             googleClientId: ServerConfig.googleClientId || local.googleClientId,
-            geminiKey: ServerConfig.geminiKey || local.geminiKey
+            geminiKey: local.geminiKey || ""
         };
     },
     
@@ -198,7 +198,6 @@ const StorageManager = {
         if (ServerConfig.supabaseUrl) delete cleanConfig.supabaseUrl;
         if (ServerConfig.supabaseKey) delete cleanConfig.supabaseKey;
         if (ServerConfig.googleClientId) delete cleanConfig.googleClientId;
-        if (ServerConfig.geminiKey) delete cleanConfig.geminiKey;
         
         localStorage.setItem("jsos_config", JSON.stringify(cleanConfig));
         
@@ -243,8 +242,8 @@ ${masterResume}
 Você DEVE responder APENAS com um objeto JSON válido, sem tags markdown, sem explicações externas, no seguinte formato exato:
 {
   "score": 85,
-  "foundSkills": ["HabilidadeEncontrada1", "HabilidadeEncontrada2"],
-  "missingSkills": ["HabilidadeFaltante1", "HabilidadeFaltante2"],
+  "found": ["HabilidadeEncontrada1", "HabilidadeEncontrada2"],
+  "missing": ["HabilidadeFaltante1", "HabilidadeFaltante2"],
   "recommendation": "Uma dica curta e objetiva de como o candidato pode otimizar o currículo para esta vaga."
 }
         `.trim();
@@ -253,18 +252,29 @@ Você DEVE responder APENAS com um objeto JSON válido, sem tags markdown, sem e
         
         try {
             let jsonText = "";
-            if (config.provider === "gemini" && config.geminiKey) {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${config.geminiKey}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }]
-                    })
-                });
+            if (config.provider === "gemini" && (config.geminiKey || ServerConfig.hasGeminiKey)) {
+                let response;
+                if (config.geminiKey) {
+                    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${config.geminiKey}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }]
+                        })
+                    });
+                } else {
+                    response = await fetch("/api/gemini", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }]
+                        })
+                    });
+                }
                 
                 if (!response.ok) {
                     const err = await response.json();
-                    throw new Error(err.error?.message || "Erro na API do Gemini");
+                    throw new Error(err.error?.message || err.error || "Erro na API do Gemini");
                 }
                 
                 const resData = await response.json();
@@ -320,16 +330,30 @@ Responda diretamente com os bullets formatados em Markdown. Sem prefácios ou ex
         
         try {
             let output = "";
-            if (config.provider === "gemini" && config.geminiKey) {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${config.geminiKey}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }]
-                    })
-                });
+            if (config.provider === "gemini" && (config.geminiKey || ServerConfig.hasGeminiKey)) {
+                let response;
+                if (config.geminiKey) {
+                    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${config.geminiKey}`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }]
+                        })
+                    });
+                } else {
+                    response = await fetch("/api/gemini", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }]
+                        })
+                    });
+                }
                 
-                if (!response.ok) throw new Error("Erro na API do Gemini");
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error?.message || errData.error || "Erro na API do Gemini");
+                }
                 const resData = await response.json();
                 output = resData.candidates[0].content.parts[0].text;
             } else if (config.provider === "ollama") {
@@ -363,8 +387,8 @@ Responda diretamente com os bullets formatados em Markdown. Sem prefácios ou ex
         if (!jobDescription || !masterResume) {
             return {
                 score: 35,
-                foundSkills: ["Comunicação"],
-                missingSkills: ["Requisitos Técnicos", "Provedor de IA não configurado"],
+                found: ["Comunicação"],
+                missing: ["Requisitos Técnicos", "Provedor de IA não configurado"],
                 recommendation: "Configure sua API Key nas Configurações ou preencha a descrição da vaga/currículo master para obter o Match Score real via LLM."
             };
         }
@@ -376,8 +400,8 @@ Responda diretamente com os bullets formatados em Markdown. Sem prefácios ou ex
         const score = Math.min(100, Math.max(30, 40 + (found.length * 10) - (missing.length * 3)));
         return {
             score: Math.round(score),
-            foundSkills: found.map(s => s.toUpperCase()),
-            missingSkills: missing.map(s => s.toUpperCase()).concat(["IA OFFLINE"]),
+            found: found.map(s => s.toUpperCase()),
+            missing: missing.map(s => s.toUpperCase()).concat(["IA OFFLINE"]),
             recommendation: "[Simulado Offline] Insira sua chave gratuita do Gemini API nas Configurações para obter uma análise semântica e detalhada."
         };
     },
@@ -410,7 +434,7 @@ const UIManager = {
                 ServerConfig.supabaseUrl = data.supabaseUrl || "";
                 ServerConfig.supabaseKey = data.supabaseKey || "";
                 ServerConfig.googleClientId = data.googleClientId || "";
-                ServerConfig.geminiKey = data.geminiKey || "";
+                ServerConfig.hasGeminiKey = !!data.hasGeminiKey;
                 if (ServerConfig.supabaseUrl && ServerConfig.supabaseKey) {
                     logToConsole("Credenciais do servidor carregadas.");
                 }
@@ -604,7 +628,7 @@ const UIManager = {
             if (currentActiveJobId) {
                 const job = await StorageManager.getJob(currentActiveJobId);
                 const config = StorageManager.getConfig();
-                const skills = job.matchScore?.missingSkills || ["Requisitos Gerais"];
+                const skills = job.matchScore?.missing || ["Requisitos Gerais"];
                 
                 document.getElementById("resume-tailoring-box").innerHTML = `
                     <div style="text-align: center; color: var(--primary-light);">
@@ -771,7 +795,6 @@ const UIManager = {
                         if (ServerConfig.supabaseUrl) delete cleanConfig.supabaseUrl;
                         if (ServerConfig.supabaseKey) delete cleanConfig.supabaseKey;
                         if (ServerConfig.googleClientId) delete cleanConfig.googleClientId;
-                        if (ServerConfig.geminiKey) delete cleanConfig.geminiKey;
                         localStorage.setItem("jsos_config", JSON.stringify(cleanConfig));
                         logToConsole("Configurações sincronizadas com o perfil da nuvem!", "success");
                         this.loadSettingsForm();
@@ -868,7 +891,7 @@ const UIManager = {
         document.getElementById("ai-provider").value = config.provider;
         
         const geminiKeyEl = document.getElementById("gemini-key");
-        if (ServerConfig.geminiKey) {
+        if (ServerConfig.hasGeminiKey) {
             geminiKeyEl.value = "";
             geminiKeyEl.disabled = true;
             geminiKeyEl.placeholder = "Configurado automaticamente pelo servidor (Vercel)";
@@ -1251,8 +1274,8 @@ const UIManager = {
             if (score >= 80) color = "var(--success)";
             else if (score >= 60) color = "var(--warning)";
             
-            const foundHtml = job.matchScore.foundSkills.map(s => `<span class="skill-tag found">${s}</span>`).join("");
-            const missingHtml = job.matchScore.missingSkills.map(s => `<span class="skill-tag missing">${s}</span>`).join("");
+            const foundHtml = (job.matchScore.found || []).map(s => `<span class="skill-tag found">${s}</span>`).join("");
+            const missingHtml = (job.matchScore.missing || []).map(s => `<span class="skill-tag missing">${s}</span>`).join("");
             
             gaugeBox.innerHTML = `
                 <div style="display: flex; align-items: center; gap: 28px; width: 100%;">
@@ -1268,10 +1291,10 @@ const UIManager = {
                     </div>
                 </div>
                 <div style="width: 100%; text-align: left; border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 12px;">
-                    <h5 style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">Habilidades Encontradas (${job.matchScore.foundSkills.length})</h5>
+                    <h5 style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">Habilidades Encontradas (${(job.matchScore.found || []).length})</h5>
                     <div class="skills-list">${foundHtml || "<span style='font-size: 0.8rem; color: var(--text-muted);'>Nenhuma correspondência óbvia.</span>"}</div>
                     
-                    <h5 style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-secondary); margin-top: 14px; margin-bottom: 6px;">Habilidades Faltantes (${job.matchScore.missingSkills.length})</h5>
+                    <h5 style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-secondary); margin-top: 14px; margin-bottom: 6px;">Habilidades Faltantes (${(job.matchScore.missing || []).length})</h5>
                     <div class="skills-list">${missingHtml || "<span style='font-size: 0.8rem; color: var(--text-muted);'>Nenhuma lacuna mapeada.</span>"}</div>
                 </div>
             `;

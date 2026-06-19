@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "antigravity-code-review": {
+      "source": "dmmltda/gravity-antigravity",
+      "sourceType": "github",
+      "skillPath": "skills/processos/code-review/SKILL.md",
+      "computedHash": "5efaff9389e3ba57acd7918b315c2d57d292ebb78a9f65e8e0cb595ea1d1fef3"
+    }
+  }
+}

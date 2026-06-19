@@ -1,0 +1,16 @@
+{
+  "plans": {
+    "TST-001": {
+      "name": "Configuração da API pública e segurança",
+      "path": "testes/plano-teste/supabase-api.plan.json"
+    },
+    "TST-002": {
+      "name": "Proxy da API do Gemini e integridade",
+      "path": "testes/plano-teste/supabase-api.plan.json"
+    },
+    "TST-003": {
+      "name": "Integração do Banco Supabase e Perfil do Usuário",
+      "path": "testes/plano-teste/supabase-api.plan.json"
+    }
+  }
+}

@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "testPlanId": "supabase-api-plan",
+  "tests": [
+    {
+      "id": "TST-001",
+      "name": "Segurança de Credenciais no api/config.js",
+      "type": "unitario",
+      "description": "Valida se o endpoint api/config.js retorna as variáveis públicas (Supabase URL, Anon Key, Google Client ID) e se oculta a variável privada GEMINI_API_KEY retornando apenas o booleano hasGeminiKey.",
+      "asserts": [
+        "Não deve retornar GEMINI_API_KEY em texto plano.",
+        "Deve retornar hasGeminiKey como verdadeiro ou falso.",
+        "Deve incluir supabaseUrl, supabaseKey e googleClientId."
+      ]
+    },
+    {
+      "id": "TST-002",
+      "name": "Proxy Seguro no api/gemini.js",
+      "type": "unitario",
+      "description": "Valida se o proxy /api/gemini aceita requisições POST com a propriedade 'contents', retorna erro para outros métodos e faz a chamada corretamente para a API da Google com o cabeçalho correto.",
+      "asserts": [
+        "Deve rejeitar chamadas GET com erro 405.",
+        "Deve retornar erro 400 se o campo 'contents' estiver ausente.",
+        "Deve simular o encaminhamento da requisição para a API externa."
+      ]
+    },
+    {
+      "id": "TST-003",
+      "name": "Mapeamento e Operações do SupabaseDB",
+      "type": "funcional",
+      "description": "Valida se as chamadas de banco do SupabaseDB para profiles usam as chaves corretas e snake_case compatível com a tabela SQL do Supabase.",
+      "asserts": [
+        "O método saveProfile deve enviar os dados utilizando chaves snake_case (gemini_key, ollama_host, ollama_model, master_resume).",
+        "O método getProfile deve mapear de volta as chaves do banco para camelCase."
+      ]
+    }
+  ]
+}
