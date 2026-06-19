@@ -392,17 +392,71 @@ Responda diretamente com os bullets formatados em Markdown. Sem prefácios ou ex
                 recommendation: "Configure sua API Key nas Configurações ou preencha a descrição da vaga/currículo master para obter o Match Score real via LLM."
             };
         }
-        const jdWords = jobDescription.toLowerCase().split(/\W+/);
-        const resumeWords = masterResume.toLowerCase().split(/\W+/);
-        const commonSkills = ["javascript", "html", "css", "git", "react", "node", "sql", "api", "scrum", "python"];
-        const found = commonSkills.filter(s => jdWords.includes(s) && resumeWords.includes(s));
-        const missing = commonSkills.filter(s => jdWords.includes(s) && !resumeWords.includes(s));
-        const score = Math.min(100, Math.max(30, 40 + (found.length * 10) - (missing.length * 3)));
+
+        const SKILLS_DICT = [
+            "javascript", "typescript", "html", "css", "sass", "react", "vue", "angular", "svelte", "jquery", "bootstrap", "tailwind", "next.js", "nextjs", "nuxt", "gatsby",
+            "node", "nodejs", "python", "java", "c#", "c++", "ruby", "rails", "php", "laravel", "go", "golang", "rust", "elixir", "nestjs", "express", "django", "flask", "spring", "asp.net", "dotnet",
+            "react native", "flutter", "swift", "kotlin", "android", "ios",
+            "sql", "mysql", "postgresql", "postgres", "mongodb", "redis", "oracle", "sqlite", "mariadb", "cassandra", "dynamodb", "firebase", "supabase", "prisma", "sequelize",
+            "docker", "kubernetes", "aws", "azure", "gcp", "google cloud", "ci/cd", "jenkins", "github actions", "gitlab", "terraform", "ansible", "nginx", "linux", "serverless", "cloud",
+            "jest", "cypress", "playwright", "selenium", "vitest", "mocha", "junit", "testing", "qa", "automated", "automation",
+            "machine learning", "deep learning", "ai", "artificial intelligence", "data science", "tableau", "power bi", "pandas", "numpy", "spark", "hadoop", "bi", "analytics", "r", "nlp", "llm", "tensorflow", "pytorch",
+            "scrum", "agile", "kanban", "product owner", "po", "product manager", "pm", "okr", "kpi", "roadmap", "user stories", "backlog", "mixpanel", "hotjar",
+            "figma", "sketch", "adobe", "photoshop", "illustrator", "ui", "ux", "ui/ux", "wireframe", "prototype", "user research", "design system", "design thinking",
+            "comunicação", "communication", "liderança", "leadership", "gestão", "management", "colaboração", "collaboration", "negociação", "negotiation", "problem solving", "criatividade", "creativity"
+        ];
+
+        const jdLower = jobDescription.toLowerCase();
+        const resumeLower = masterResume.toLowerCase();
+
+        const vagaSkills = [];
+        for (const skill of SKILLS_DICT) {
+            const hasSpecialChar = /[\s\.\/\#]/.test(skill);
+            const regex = hasSpecialChar ? new RegExp(skill.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i') : new RegExp('\\b' + skill + '\\b', 'i');
+            if (regex.test(jdLower)) {
+                vagaSkills.push(skill);
+            }
+        }
+
+        if (vagaSkills.length === 0) {
+            const stopWords = new Set([
+                'para', 'como', 'mais', 'uma', 'com', 'seu', 'sua', 'este', 'esta', 'seus', 'suas', 'sobre', 'onde',
+                'pelo', 'pela', 'pelos', 'pelas', 'tudo', 'todos', 'todas', 'nossos', 'nossas', 'você', 'vocês',
+                'sendo', 'está', 'estão', 'têm', 'ter', 'fazer', 'trabalho', 'vaga', 'perfil', 'empresa', 'área',
+                'desenvolvimento', 'atuar', 'equipe', 'diferencial', 'modelo', 'requisitos', 'experiência', 'atividades',
+                'responsabilidades', 'benefícios', 'contratação', 'modelo', 'remoto', 'híbrido'
+            ]);
+            const words = jdLower.split(/\W+/).filter(w => w.length >= 4 && !stopWords.has(w));
+            const freq = {};
+            words.forEach(w => freq[w] = (freq[w] || 0) + 1);
+            const sortedWords = Object.keys(freq).sort((a, b) => freq[b] - freq[a]);
+            vagaSkills.push(...sortedWords.slice(0, 10));
+        }
+
+        const found = [];
+        const missing = [];
+        
+        for (const skill of vagaSkills) {
+            const hasSpecialChar = /[\s\.\/\#]/.test(skill);
+            const regex = hasSpecialChar ? new RegExp(skill.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'i') : new RegExp('\\b' + skill + '\\b', 'i');
+            if (regex.test(resumeLower)) {
+                found.push(skill);
+            } else {
+                missing.push(skill);
+            }
+        }
+
+        const cap = s => s.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        
+        const total = found.length + missing.length;
+        const scorePct = total > 0 ? (found.length / total) * 100 : 35;
+        const finalScore = Math.min(100, Math.max(30, Math.round(scorePct)));
+
         return {
-            score: Math.round(score),
-            found: found.map(s => s.toUpperCase()),
-            missing: missing.map(s => s.toUpperCase()).concat(["IA OFFLINE"]),
-            recommendation: "[Simulado Offline] Insira sua chave gratuita do Gemini API nas Configurações para obter uma análise semântica e detalhada."
+            score: finalScore,
+            found: found.map(cap),
+            missing: missing.map(cap),
+            recommendation: `[Análise Offline] Seu score de aderência é de ${finalScore}%. Insira sua Gemini API Key para obter sugestões semânticas precisas por IA.`
         };
     },
     
@@ -1394,10 +1448,10 @@ const UIManager = {
                     </div>
                 </div>
                 <div style="width: 100%; text-align: left; border-top: 1px solid var(--border-color); padding-top: 12px; margin-top: 12px;">
-                    <h5 style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">Habilidades Encontradas (${(job.matchScore.found || []).length})</h5>
+                    <h5 style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">Especificações Encontradas (${(job.matchScore.found || []).length})</h5>
                     <div class="skills-list">${foundHtml || "<span style='font-size: 0.8rem; color: var(--text-muted);'>Nenhuma correspondência óbvia.</span>"}</div>
                     
-                    <h5 style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-secondary); margin-top: 14px; margin-bottom: 6px;">Habilidades Faltantes (${(job.matchScore.missing || []).length})</h5>
+                    <h5 style="font-size: 0.78rem; text-transform: uppercase; color: var(--text-secondary); margin-top: 14px; margin-bottom: 6px;">Especificações Faltantes (${(job.matchScore.missing || []).length})</h5>
                     <div class="skills-list">${missingHtml || "<span style='font-size: 0.8rem; color: var(--text-muted);'>Nenhuma lacuna mapeada.</span>"}</div>
                 </div>
             `;

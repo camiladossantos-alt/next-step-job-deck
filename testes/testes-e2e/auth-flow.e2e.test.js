@@ -24,8 +24,13 @@ test('TST-005 - Playwright E2E Auth Flow and UI verification', async (t) => {
     });
 
     try {
-        console.log('Navigating to http://localhost:3000...');
-        await page.goto('http://localhost:3000', { waitUntil: 'domcontentloaded', timeout: 15000 });
+        console.log('Navigating to http://127.0.0.1:3000...');
+        try {
+            await page.goto('http://127.0.0.1:3000', { waitUntil: 'domcontentloaded', timeout: 15000 });
+        } catch (gotoErr) {
+            console.log('Navigation to 127.0.0.1 failed, trying localhost...');
+            await page.goto('http://localhost:3000', { waitUntil: 'domcontentloaded', timeout: 15000 });
+        }
         
         // Assert that the page title is correct
         const pageTitle = await page.title();
